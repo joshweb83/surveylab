@@ -11,15 +11,16 @@ import { SurveyQuestionsView } from './components/SurveyQuestionsView';
 import { PrizeManagement } from './components/PrizeManagement';
 import { AnalyticsManagement } from './components/AnalyticsManagement';
 import { UniversityManagement } from './components/UniversityManagement';
-import { DataManagement } from './components/DataManagement';
 import { Survey, SurveyResponse, QuestionType, PrizeDrawRecord, University } from './types';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 
-// Default Google Apps Script URL for Cloud Sync (Can be empty initially)
-const DEFAULT_SCRIPT_URL = "";
+// ---------------------------------------------------------------------------
+// CONFIGURATION: GOOGLE SHEETS "DATABASE" URL
+// ---------------------------------------------------------------------------
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwXFwIa0g9x31PWY2nS0-JGjHEcrrtH-2PU0DSA2Q2tvXf7G3S6Oo38d8HWGdPIykdBrw/exec";
 
-// Initial Mock Data
+// Initial Mock Data (Fallback if DB is empty or offline)
 const INITIAL_UNIVERSITIES: University[] = [
   { id: 'u1', name: '한국대학교', region: '서울', studentCount: 15000, logoColor: 'bg-blue-100' },
   { id: 'u2', name: '서울과학기술대', region: '서울', studentCount: 12000, logoColor: 'bg-orange-100' },
@@ -40,18 +41,15 @@ const INITIAL_SURVEYS: Survey[] = [
       { id: 'q1', text: '전공 교육과정의 구성과 내용이 체계적이라고 생각하십니까?', type: QuestionType.LIKERT },
       { id: 'q2', text: '교수진의 강의 준비와 수업 진행 방식에 만족하십니까?', type: QuestionType.LIKERT },
       { id: 'q3', text: '교수님들은 학생들의 질문이나 상담 요청에 적극적으로 응대합니까?', type: QuestionType.LIKERT },
-      
       { id: 'sec2', text: 'Ⅱ. 교육 환경 및 시설', type: QuestionType.SECTION },
       { id: 'q4', text: '강의실, 실험실습실 등 수업 환경(냉난방, 기자재 등)이 쾌적합니까?', type: QuestionType.LIKERT },
       { id: 'q5', text: '도서관의 학습 공간과 장서 보유량에 만족하십니까?', type: QuestionType.LIKERT },
       { id: 'q6', text: '교내 와이파이(Wi-Fi) 속도 및 전산 실습 장비 등 IT 환경에 만족하십니까?', type: QuestionType.LIKERT },
-
       { id: 'sec3', text: 'Ⅲ. 학생 복지 및 행정 지원', type: QuestionType.SECTION },
       { id: 'q7', text: '학생 식당의 메뉴 다양성과 맛, 가격에 만족하십니까?', type: QuestionType.LIKERT },
       { id: 'q8', text: '장학금 제도가 다양하고 공정하게 운영된다고 생각하십니까?', type: QuestionType.LIKERT },
       { id: 'q9', text: '진로 및 취업 지원 프로그램(상담, 취업 박람회 등)이 실질적인 도움이 됩니까?', type: QuestionType.LIKERT },
       { id: 'q10', text: '행정 부서(학과 사무실, 본부 등)의 민원 처리 속도와 친절도에 만족하십니까?', type: QuestionType.LIKERT },
-
       { id: 'sec4', text: 'Ⅳ. 종합 의견', type: QuestionType.SECTION },
       { id: 'q11', text: '나는 우리 대학에 다니는 것에 대해 자부심을 느낀다.', type: QuestionType.LIKERT },
       { id: 'q12', text: '학교 발전을 위해 가장 시급하게 개선해야 할 분야는 무엇입니까?', type: QuestionType.MULTIPLE_CHOICE, options: ['교육과정/강의질', '교육시설/환경', '식당/편의시설', '장학/복지제도', '취업/진로지원', '소통/행정서비스'] },
@@ -65,12 +63,7 @@ const INITIAL_RESPONSES: SurveyResponse[] = [
     id: 'r1', 
     surveyId: 'demo-1', 
     answers: { 
-      'q1': 4, 'q2': 5, 'q3': 4, 
-      'q4': 3, 'q5': 5, 'q6': 2, 
-      'q7': 2, 'q8': 4, 'q9': 3, 'q10': 4, 
-      'q11': 4, 
-      'q12': '식당/편의시설', 
-      'q13': '학식 메뉴가 너무 적어요. 편의점이 더 생겼으면 좋겠습니다.' 
+      'q1': 4, 'q2': 5, 'q3': 4, 'q4': 3, 'q5': 5, 'q6': 2, 'q7': 2, 'q8': 4, 'q9': 3, 'q10': 4, 'q11': 4, 'q12': '식당/편의시설', 'q13': '학식 메뉴가 너무 적어요. 편의점이 더 생겼으면 좋겠습니다.' 
     }, 
     submittedAt: new Date(Date.now() - 86400000 * 2).toISOString() 
   },
@@ -78,12 +71,7 @@ const INITIAL_RESPONSES: SurveyResponse[] = [
     id: 'r2', 
     surveyId: 'demo-1', 
     answers: { 
-      'q1': 5, 'q2': 5, 'q3': 5, 
-      'q4': 4, 'q5': 5, 'q6': 3, 
-      'q7': 3, 'q8': 5, 'q9': 4, 'q10': 5, 
-      'q11': 5, 
-      'q12': '취업/진로지원', 
-      'q13': '취업 멘토링 프로그램이 더 자주 열렸으면 합니다.' 
+      'q1': 5, 'q2': 5, 'q3': 5, 'q4': 4, 'q5': 5, 'q6': 3, 'q7': 3, 'q8': 5, 'q9': 4, 'q10': 5, 'q11': 5, 'q12': '취업/진로지원', 'q13': '취업 멘토링 프로그램이 더 자주 열렸으면 합니다.' 
     }, 
     submittedAt: new Date(Date.now() - 86400000).toISOString() 
   },
@@ -91,45 +79,14 @@ const INITIAL_RESPONSES: SurveyResponse[] = [
     id: 'r3', 
     surveyId: 'demo-1', 
     answers: { 
-      'q1': 3, 'q2': 3, 'q3': 3, 
-      'q4': 2, 'q5': 4, 'q6': 1, 
-      'q7': 1, 'q8': 3, 'q9': 2, 'q10': 2, 
-      'q11': 3, 
-      'q12': '교육시설/환경', 
-      'q13': '와이파이가 너무 자주 끊겨요. 강의실 의자도 교체해주세요.' 
-    }, 
-    submittedAt: new Date().toISOString() 
-  },
-  { 
-    id: 'r4', 
-    surveyId: 'demo-1', 
-    answers: { 
-      'q1': 4, 'q2': 4, 'q3': 5, 
-      'q4': 3, 'q5': 5, 'q6': 4, 
-      'q7': 4, 'q8': 2, 'q9': 5, 'q10': 4, 
-      'q11': 4, 
-      'q12': '장학/복지제도', 
-      'q13': '성적 장학금 비율을 늘려주세요.' 
-    }, 
-    submittedAt: new Date().toISOString() 
-  },
-  { 
-    id: 'r5', 
-    surveyId: 'demo-1', 
-    answers: { 
-      'q1': 5, 'q2': 4, 'q3': 4, 
-      'q4': 5, 'q5': 5, 'q6': 5, 
-      'q7': 3, 'q8': 4, 'q9': 3, 'q10': 3, 
-      'q11': 4, 
-      'q12': '교육과정/강의질', 
-      'q13': '' 
+      'q1': 3, 'q2': 3, 'q3': 3, 'q4': 2, 'q5': 4, 'q6': 1, 'q7': 1, 'q8': 3, 'q9': 2, 'q10': 2, 'q11': 3, 'q12': '교육시설/환경', 'q13': '와이파이가 너무 자주 끊겨요. 강의실 의자도 교체해주세요.' 
     }, 
     submittedAt: new Date().toISOString() 
   }
 ];
 
 const App: React.FC = () => {
-  // Persistence logic: Load from localStorage or fall back to initial data
+  // --- 1. State Initialization (Try LocalStorage first for speed, then Cloud will override) ---
   const [surveys, setSurveys] = useState<Survey[]>(() => {
     const saved = localStorage.getItem('surveys');
     return saved ? JSON.parse(saved) : INITIAL_SURVEYS;
@@ -149,35 +106,57 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('prizeHistory');
     return saved ? JSON.parse(saved) : [];
   });
+  
+  // Start loading as true if we have a URL to prevent overwriting cloud data with initial local data
+  const [isLoadingCloud, setIsLoadingCloud] = useState(!!GOOGLE_SHEET_URL);
 
-  // Cloud Sync State - Use DEFAULT_SCRIPT_URL if nothing is in localStorage
-  const [scriptUrl, setScriptUrl] = useState(() => localStorage.getItem('googleSheetScriptUrl') || DEFAULT_SCRIPT_URL);
-  const [lastCloudSync, setLastCloudSync] = useState<string | null>(localStorage.getItem('googleSheetLastSync'));
-  const [isAutoSyncing, setIsAutoSyncing] = useState(false);
+  // --- 2. Local Persistence (Always keep local in sync for redundancy) ---
+  useEffect(() => { localStorage.setItem('surveys', JSON.stringify(surveys)); }, [surveys]);
+  useEffect(() => { localStorage.setItem('responses', JSON.stringify(responses)); }, [responses]);
+  useEffect(() => { localStorage.setItem('universities', JSON.stringify(universities)); }, [universities]);
+  useEffect(() => { localStorage.setItem('prizeHistory', JSON.stringify(prizeHistory)); }, [prizeHistory]);
 
-  // Persistence logic: Save to localStorage whenever state changes
+  // --- 3. Cloud Sync Logic ---
+  
+  // A. Load from Cloud on Mount (Database Behavior)
   useEffect(() => {
-    localStorage.setItem('surveys', JSON.stringify(surveys));
-  }, [surveys]);
+    if (!GOOGLE_SHEET_URL) return;
 
-  useEffect(() => {
-    localStorage.setItem('responses', JSON.stringify(responses));
-  }, [responses]);
+    const fetchData = async () => {
+      setIsLoadingCloud(true);
+      try {
+        console.log("Fetching data from Google Sheets...");
+        const response = await fetch(GOOGLE_SHEET_URL);
+        if (!response.ok) throw new Error("Failed to fetch from Google Sheets");
+        
+        const data = await response.json();
+        
+        // If the sheet has data, update the app state (Single Source of Truth)
+        if (data.surveys && data.surveys.length > 0) setSurveys(data.surveys);
+        if (data.responses) setResponses(data.responses); // Allow empty array
+        if (data.universities && data.universities.length > 0) setUniversities(data.universities);
+        if (data.prizeHistory) setPrizeHistory(data.prizeHistory);
+        
+        console.log("App state synchronized with Google Sheets.");
+      } catch (e) {
+        console.error("Cloud Fetch Error:", e);
+        // Fallback to local storage (already loaded)
+      } finally {
+        setIsLoadingCloud(false);
+      }
+    };
 
-  useEffect(() => {
-    localStorage.setItem('universities', JSON.stringify(universities));
-  }, [universities]);
+    fetchData();
+  }, []);
 
+  // B. Save to Cloud on Change (Debounced)
   useEffect(() => {
-    localStorage.setItem('prizeHistory', JSON.stringify(prizeHistory));
-  }, [prizeHistory]);
+    if (!GOOGLE_SHEET_URL) return;
 
-  // Real-time Cloud Sync Effect (Debounced)
-  useEffect(() => {
-    if (!scriptUrl) return;
+    // Skip saving if we are currently loading initial data to prevent overwriting cloud with stale local state
+    if (isLoadingCloud) return;
 
     const syncToCloud = async () => {
-      setIsAutoSyncing(true);
       try {
         const payload = {
           surveys,
@@ -188,37 +167,25 @@ const App: React.FC = () => {
           version: '1.0'
         };
         
-        await fetch(scriptUrl, {
+        await fetch(GOOGLE_SHEET_URL, {
             method: 'POST',
-            mode: 'no-cors', // Using no-cors to avoid CORS issues with simple GAS deployments
+            mode: 'no-cors', // Essential for Google Apps Script Web App calls
             body: JSON.stringify(payload),
-            headers: {
-                'Content-Type': 'text/plain;charset=utf-8',
-            }
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
         
-        const now = new Date().toLocaleString();
-        setLastCloudSync(now);
-        localStorage.setItem('googleSheetLastSync', now);
+        console.log("Changes pushed to Google Sheets.");
       } catch (err) {
         console.error("Auto-sync error:", err);
-      } finally {
-        setIsAutoSyncing(false);
       }
     };
 
-    // Debounce the sync to avoid API quota limits
-    const timeoutId = setTimeout(syncToCloud, 3000); // 3 seconds debounce for snappier saves
-
+    const timeoutId = setTimeout(syncToCloud, 2000); // 2s debounce
     return () => clearTimeout(timeoutId);
-  }, [surveys, responses, universities, prizeHistory, scriptUrl]);
+  }, [surveys, responses, universities, prizeHistory, isLoadingCloud]);
 
-  const handleScriptUrlChange = (url: string) => {
-    setScriptUrl(url);
-    localStorage.setItem('googleSheetScriptUrl', url);
-    // Note: When URL changes, the sync effect will trigger automatically due to dependency on scriptUrl
-  };
 
+  // --- 4. Handlers ---
   const handleCreateSurvey = (newSurvey: Survey) => {
     setSurveys([newSurvey, ...surveys]);
   };
@@ -242,13 +209,6 @@ const App: React.FC = () => {
   const handleImportData = (newSurvey: Survey, newResponses: SurveyResponse[]) => {
     setSurveys([newSurvey, ...surveys]);
     setResponses([...responses, ...newResponses]);
-  };
-
-  const handleRestoreData = (data: any) => {
-    if (data.surveys) setSurveys(data.surveys);
-    if (data.responses) setResponses(data.responses);
-    if (data.universities) setUniversities(data.universities);
-    if (data.prizeHistory) setPrizeHistory(data.prizeHistory);
   };
 
   // University Handlers
@@ -296,20 +256,8 @@ const App: React.FC = () => {
                   onDeleteRecord={handleDeletePrizeRecord}
                 />
               } />
-              <Route path="settings" element={
-                <DataManagement 
-                  surveys={surveys} 
-                  responses={responses} 
-                  universities={universities}
-                  prizeHistory={prizeHistory}
-                  onRestoreData={handleRestoreData}
-                  scriptUrl={scriptUrl}
-                  onScriptUrlChange={handleScriptUrlChange}
-                  lastSyncTime={lastCloudSync}
-                  isSyncing={isAutoSyncing}
-                />
-              } />
-              {/* Public/Student View would typically be outside Layout, but keeping inside for demo simplicity, removing sidebar via logic */}
+              
+              {/* Public/Student View */}
               <Route path="take/:id" element={<SurveyTaker surveys={surveys} universities={universities} onSubmit={handleSurveySubmit} />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

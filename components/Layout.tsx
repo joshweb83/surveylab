@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation, Link } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, GraduationCap, Globe, ClipboardList, Menu, X, Gift, Moon, Sun, PieChart, School, Database } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, GraduationCap, Globe, ClipboardList, Menu, X, Gift, Moon, Sun, PieChart, School } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -111,14 +111,6 @@ export const Layout: React.FC = () => {
           >
             <Gift className="w-5 h-5" />
             {t('nav_prize')}
-          </NavLink>
-          <NavLink 
-            to="/settings" 
-            onClick={closeMobileMenu}
-            className={({ isActive }) => `flex items-center gap-3 px-6 py-4 md:py-3 text-sm font-medium transition-colors whitespace-nowrap ${isActive ? 'bg-blue-50 dark:bg-slate-700 text-blue-700 dark:text-blue-300 border-r-4 border-blue-600 dark:border-blue-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-          >
-            <Database className="w-5 h-5" />
-            {t('nav_settings')}
           </NavLink>
         </div>
 
