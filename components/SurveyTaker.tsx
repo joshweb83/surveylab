@@ -231,9 +231,7 @@ export const SurveyTaker: React.FC<SurveyTakerProps> = ({ surveys, universities 
              </Button>
           </div>
         ) : (
-          <Button onClick={handleExit} variant="outline">
-            {t('taker_return')}
-          </Button>
+          null // Removed Return to Dashboard button
         )}
       </div>
     );
